@@ -155,7 +155,9 @@ void game_flag_cell_at(Game *game, int row, int col) {
   cell = field_get_cell_at(&game->field, row, col);
   if (cell.state == STATE_UNEXPLORE) {
     cell.state = STATE_FLAGGED;
-    if (cell.object == OBJ_MINE) game->true_flagged++;
+    if (cell.object == OBJ_MINE) {
+      game->true_flagged++;
+    }
   }
   else if (cell.state == STATE_FLAGGED) {
     cell.state = STATE_UNEXPLORE;
@@ -206,7 +208,9 @@ void game_handle_open_cell(Game *game) {
   } else {
     cell = game_open_cell_at(game, game->cursor.row, game->cursor.col);
     if (cell.object == OBJ_MINE) {
-      game_reveal_everything(game);
+      cell.state = STATE_EXPLODE;
+      field_set_cell_at(&game->field, game->cursor.row, game->cursor.col, cell);
+      game_reveal_only_mines(game);
       game->state = GAME_STATE_LOSE;
       game->stop = 1;
     } else {
@@ -299,6 +303,7 @@ void game_reveal_only_mines(Game *game) {
     for (int j = 0; j < game->field.cols; ++j) {
       cell = field_get_cell_at(&game->field, i, j);
       if (cell.state == STATE_UNEXPLORE && cell.object == OBJ_MINE) cell.state = STATE_EXPLORED;
+      if (cell.state == STATE_FLAGGED && cell.object == OBJ_MINE) cell.state = STATE_TRUE_FLAGGED;
       field_set_cell_at(&game->field, i, j, cell);
     }
   }
@@ -323,14 +328,18 @@ void game_print(Game *game) {
       cell = field_get_cell_at(&game->field, i, j);
       if (game->cursor.row == i && game->cursor.col == j) printf("["); else printf(" ");
       if (cell.state == STATE_UNEXPLORE) {
-	printf(".");
+	printf(COLOR_RED"."COLOR_RESET);
       } else if (cell.state == STATE_FLAGGED) {
 	printf(COLOR_YELLOW"?"COLOR_RESET);
+      } else if (cell.state == STATE_TRUE_FLAGGED) {
+	printf(COLOR_GREEN"v"COLOR_RESET);
+      } else if (cell.state == STATE_EXPLODE) {
+	printf(COLOR_CYAN"@"COLOR_RESET);
       } else {
 	if (cell.object == OBJ_MINE) {
 	  printf("*");
 	} else if (cell.object == OBJ_EMPTY) {
-	  if (cell.mines_count != 0) printf(COLOR_GREEN"%d"COLOR_RESET, cell.mines_count);
+	  if (cell.mines_count != 0) printf("%d", cell.mines_count);
 	  else printf(" ");
 	} else {
 	  printf("Unreachable\n");
