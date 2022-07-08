@@ -204,8 +204,8 @@ void game_check_for_win(Game *game) {
   for (int i = 0; i < game->field.rows; ++i) {
     for (int j = 0; j < game->field.cols; ++j) {
       cell = field_get_cell_at(&game->field, i, j);
-      if ((cell.state == STATE_UNEXPLORE && cell.object == OBJ_MINE) ||
-	  (cell.state == STATE_FLAGGED	 && cell.object == OBJ_MINE)) mine_cells++;
+      if (cell.state == STATE_UNEXPLORE) mine_cells++;
+      if (cell.state == STATE_FLAGGED && cell.object == OBJ_MINE) mine_cells++;
     }
   }
 

@@ -11,4 +11,4 @@ $ ./termines
 
 ### References
 
-(Tsoding's stream)[https://www.twitch.tv/videos/1524095190]
+[Tsoding's stream](https://www.twitch.tv/videos/1524095190)
