@@ -9,30 +9,37 @@ void field_init(Field *field, int rows, int cols) {
     field->cells[i].object = OBJ_EMPTY;
     field->cells[i].state = STATE_UNEXPLORE;
   }
+}
 
-  field_randomize_bomb(field, MINE_PERCENTAGE);
-  for (int i = 0; i < rows; ++i) {
-    for (int j = 0; j < cols; ++j) {
-      field_get_mines_cell_count_at(field, i, j);
-    }
+void field_find_empty_space(Field *field, int *row, int *col, int nrow, int ncol) {
+  srand(time(NULL));
+  Cell cell;
+  while (1) {
+     *row = rand() % field->rows;
+     *col = rand() % field->cols;
+     cell = field_get_cell_at(field, *row, *col);
+     if (cell.object == OBJ_EMPTY && !field_check_is_in_neighbor(*row, *col, nrow, ncol)) break;
+     else if (*row == nrow && *col == ncol) continue;
+     else if (field_check_is_in_neighbor(*row, *col, nrow, ncol)) continue;
+     else continue;
   }
 }
 
-void field_randomize_bomb(Field *field, int bomb_percentages) {
-  if (bomb_percentages > 100) bomb_percentages = 100;
-  else if (bomb_percentages < 0) bomb_percentages = 0;
+void field_randomize_bomb(Field *field, int row, int col, int bomb_percentages) {
+  bomb_percentages = field_cap_bomb_bomb_percentages(bomb_percentages);
 
   int bombs_count = field->rows * field->cols * bomb_percentages / 100;
-  int row;
-  int col;
+  int drow;
+  int dcol;
   Cell cell = {0};
 
   field->total_mines = bombs_count;
+  if (field->rows * field->cols <= 9) bombs_count = 0;
 
   cell.object = OBJ_MINE;
   while (bombs_count > 0) {
-    field_find_empty_space(field, &row, &col);
-    field_set_cell_at(field, row, col, cell);
+    field_find_empty_space(field, &drow, &dcol, row, col);
+    field_set_cell_at(field, drow, dcol, cell);
     bombs_count--;
   }
 }
@@ -73,18 +80,6 @@ void field_set_cell_at(Field *field, int row, int col, Cell cell) {
   }
 }
 
-void field_find_empty_space(Field *field, int *row, int *col) {
-  srand(time(NULL));
-  Cell cell;
-  while (1) {
-     *row = rand() % field->rows;
-     *col = rand() % field->cols;
-     cell = field_get_cell_at(field, *row, *col);
-     if (cell.object == OBJ_EMPTY) break;
-     else continue;
-  }
-}
-
 void field_print(Field *field) {
   Cell cell;
   for (int i = 0; i < field->rows; ++i) {
@@ -110,4 +105,26 @@ void field_print(Field *field) {
 
 void field_free(Field *field) {
   free(field->cells);
+}
+
+int field_check_is_in_neighbor(int drow, int dcol, int row, int col) {
+  for (int i = -1; i <= 1; ++i) {
+    for (int j = -1; j <= 1; ++j) {
+      if (drow == row + i && dcol == col + j) return 1;
+    }
+  }
+  return 0;
+}
+
+int field_cap_bomb_bomb_percentages(int bomb_percentages) {
+  if (bomb_percentages < 0) bomb_percentages = 0;
+  else if (bomb_percentages < 80);
+  else {
+    float temp = 80.f / 100.f;
+    temp = 0.25f * temp * temp * temp + 0.5;
+    temp *= 100;
+    bomb_percentages = (int)temp;
+  }
+
+  return bomb_percentages;
 }

@@ -34,11 +34,12 @@ typedef struct {
   GameState state;
 
   int true_flagged;
+  int first_pick;
+
   int running;
   int stop;
 
   int cheat;
-
 } Game;
 
 void game_init(Game *game);

@@ -2,13 +2,14 @@
 
 void game_init(Game *game) {
   field_init(&game->field, FIELD_SIZE, FIELD_SIZE);
-  game->cursor.row = 0;
-  game->cursor.col = 0;
-  game->running = 1;
-  game->state = GAME_STATE_PLAYING;
-  game->cheat = 0;
-  game->true_flagged = 0;
-  game->stop = 0;
+  game->state		= GAME_STATE_PLAYING;
+  game->cursor.row	= game->field.rows / 2;
+  game->cursor.col	= game->field.cols / 2;
+  game->running		= 1;
+  game->first_pick	= 1;
+  game->cheat		= 0;
+  game->true_flagged	= 0;
+  game->stop		= 0;
 }
 
 void game_set_input_mode(void) {
@@ -61,6 +62,9 @@ void game_handle_input(Game *game, char c) {
   case ' ':
     game_handle_open_cell(game);
     game_check_for_win(game);
+    break;
+  case 'r':
+    game_handle_yes_no_question(game, "Really restart?", game_restart, game_unpause);
     break;
   case 'C':
     game->cheat = !game->cheat;
@@ -152,8 +156,14 @@ void game_flag_cell_at(Game *game, int row, int col) {
   Cell cell;
 
   cell = field_get_cell_at(&game->field, row, col);
-  if (cell.state == STATE_UNEXPLORE) cell.state = STATE_FLAGGED;
-  else if (cell.state == STATE_FLAGGED) cell.state = STATE_UNEXPLORE;
+  if (cell.state == STATE_UNEXPLORE) {
+    cell.state = STATE_FLAGGED;
+    if (cell.object == OBJ_MINE) game->true_flagged++;
+  }
+  else if (cell.state == STATE_FLAGGED) {
+    cell.state = STATE_UNEXPLORE;
+    if (cell.object == OBJ_MINE) game->true_flagged--;
+  }
   field_set_cell_at(&game->field, row, col, cell);
 }
 
@@ -185,14 +195,26 @@ void game_open_neighbor_cell(Game *game, int row, int col) {
 
 void game_handle_open_cell(Game *game) {
   Cell cell;
-  cell = game_open_cell_at(game, game->cursor.row, game->cursor.col);
-  if (cell.object == OBJ_MINE) {
-    game_reveal_everything(game);
-    game->state = GAME_STATE_LOSE;
-    game->stop = 1;
+  if (game->first_pick) {
+    cell = game_open_cell_at(game, game->cursor.row, game->cursor.col);
+    field_randomize_bomb(&game->field, game->cursor.row, game->cursor.col, MINE_PERCENTAGE);
+    for (int i = 0; i < game->field.rows; ++i) {
+      for (int j = 0; j < game->field.cols; ++j) {
+	field_get_mines_cell_count_at(&game->field, i, j);
+      }
+    }
+    game_open_neighbor_cell(game, game->cursor.row, game->cursor.col);
+    game->first_pick = 0;
   } else {
-    if (cell.mines_count == 0) {
-      game_open_neighbor_cell(game, game->cursor.row, game->cursor.col);
+    cell = game_open_cell_at(game, game->cursor.row, game->cursor.col);
+    if (cell.object == OBJ_MINE) {
+      game_reveal_everything(game);
+      game->state = GAME_STATE_LOSE;
+      game->stop = 1;
+    } else {
+      if (cell.mines_count == 0) {
+	game_open_neighbor_cell(game, game->cursor.row, game->cursor.col);
+      }
     }
   }
 }
