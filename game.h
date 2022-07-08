@@ -4,15 +4,21 @@
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "./mine_field.h"
 
-#define KEYCODE_LEFT 37
-#define KEYCODE_UP 38
-#define KEYCODE_RIGHT 39
-#define KEYCODE_DOWN 40
-
 struct termios saved_attr;
+
+#define COLOR_BLACK	"\033[30m"
+#define COLOR_RED	"\033[31m"
+#define COLOR_GREEN	"\033[32m"
+#define COLOR_YELLOW	"\033[33m"
+#define COLOR_BLUE	"\033[34m"
+#define COLOR_MAGENTA	"\033[35m"
+#define COLOR_CYAN	"\033[36m"
+#define COLOR_WHITE	"\033[37m"
+#define COLOR_RESET	"\033[0m"
 
 typedef struct {
   int row;
@@ -38,6 +44,8 @@ typedef struct {
 
   int running;
   int stop;
+
+  time_t timer;
 
   int cheat;
 } Game;

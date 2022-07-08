@@ -39,20 +39,16 @@ void game_handle_input(Game *game, char c) {
   case 'Q':
     game_handle_yes_no_question(game, "Really quit?", game_quit, game_unpause);
     break;
-  case KEYCODE_UP:
   case 'w':
     game_move_cursor_up(game);
     break;
-  case KEYCODE_DOWN:
   case 's':
     game_move_cursor_down(game);
     break;
-  case KEYCODE_LEFT:
   case 'a':
     game_move_cursor_left(game);
     break;
   case 'd':
-  case KEYCODE_RIGHT:
     game_move_cursor_right(game);
     break;
   case 'f':
@@ -96,6 +92,7 @@ void game_start(Game *game) {
 }
 
 void game_restart(Game *game){ 
+  field_free(&game->field);
   game_clear_everything();
   game_init(game);
 }
@@ -204,6 +201,7 @@ void game_handle_open_cell(Game *game) {
       }
     }
     game_open_neighbor_cell(game, game->cursor.row, game->cursor.col);
+    game->timer = time(NULL);
     game->first_pick = 0;
   } else {
     cell = game_open_cell_at(game, game->cursor.row, game->cursor.col);
@@ -239,10 +237,23 @@ void game_check_for_win(Game *game) {
 
 void game_handle_game_state(Game *game) {
   if (game->state == GAME_STATE_WON) {
+    time_t start_time = game->timer;
+    game->timer = time(NULL);
+    float time_taken = difftime(game->timer, start_time);
+
     printf("Congratulation! You won.\n");
+    printf("Time takens: %02dm:%.2fs.\n", (int)(time_taken / 60), time_taken - (int)(time_taken / 60));
+
     game_handle_yes_no_question(game, "Continue playing?", game_restart, game_quit);
   } else if (game->state == GAME_STATE_LOSE) {
+    time_t start_time = game->timer;
+    game->timer = time(NULL);
+    float time_taken = difftime(game->timer, start_time);
+
     printf("Oh no! Seems like you hit a mine. That's suck.\n");
+    printf("You flagged %02d/%02d mines! Good jobs.\n", game->true_flagged, game->field.total_mines);
+    printf("Time takens: %02dm:%.2fs.\n", (int)(time_taken / 60), time_taken - (int)(time_taken / 60));
+
     game_handle_yes_no_question(game, "Retry?", game_restart, game_quit);
   }
 }
@@ -314,12 +325,12 @@ void game_print(Game *game) {
       if (cell.state == STATE_UNEXPLORE) {
 	printf(".");
       } else if (cell.state == STATE_FLAGGED) {
-	printf("?");
+	printf(COLOR_YELLOW"?"COLOR_RESET);
       } else {
 	if (cell.object == OBJ_MINE) {
 	  printf("*");
 	} else if (cell.object == OBJ_EMPTY) {
-	  if (cell.mines_count != 0) printf("%d", cell.mines_count);
+	  if (cell.mines_count != 0) printf(COLOR_GREEN"%d"COLOR_RESET, cell.mines_count);
 	  else printf(" ");
 	} else {
 	  printf("Unreachable\n");
