@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define MINE_PERCENTAGE 15
+#define MINE_PERCENTAGE 25
 #define FIELD_SIZE 25
 
 typedef enum {

@@ -62,10 +62,10 @@ void game_handle_input(Game *game, char c) {
   case 'r':
     game_handle_yes_no_question(game, "Really restart?", game_restart, game_unpause);
     break;
-  case 'C':
-    game->cheat = !game->cheat;
-    if (game->cheat) game_reveal_everything(game);
-    else game_unreveal_everything(game);
+  /* case 'C': */
+  /*   game->cheat = !game->cheat; */
+  /*   if (game->cheat) game_reveal_everything(game); */
+  /*   else game_unreveal_everything(game); */
   default:
     break;
   }
@@ -246,7 +246,7 @@ void game_handle_game_state(Game *game) {
     float time_taken = difftime(game->timer, start_time);
 
     printf("Congratulation! You won.\n");
-    printf("Time takens: %02dm:%.2fs.\n", (int)(time_taken / 60), time_taken - (int)(time_taken / 60));
+    printf("Time takens: %02dm:%02.0fs.\n", (int)(time_taken / 60), time_taken - (int)(time_taken / 60));
 
     game_handle_yes_no_question(game, "Continue playing?", game_restart, game_quit);
   } else if (game->state == GAME_STATE_LOSE) {
@@ -256,7 +256,7 @@ void game_handle_game_state(Game *game) {
 
     printf("Oh no! Seems like you hit a mine. That's suck.\n");
     printf("You flagged %02d/%02d mines! Good jobs.\n", game->true_flagged, game->field.total_mines);
-    printf("Time takens: %02dm:%.2fs.\n", (int)(time_taken / 60), time_taken - (int)(time_taken / 60));
+    printf("Time takens: %02dm:%02.0fs.\n", (int)(time_taken / 60), time_taken - 60 * (int)(time_taken / 60));
 
     game_handle_yes_no_question(game, "Retry?", game_restart, game_quit);
   }
