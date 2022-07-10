@@ -1,8 +1,8 @@
 #!/bin/bash
 
 CXX="${CXX:-gcc}"
-SRC_APP="*.c"
-FLAGS="-Wall -Werror -Wextra -pedantic -ggdb -lm"
+SRC_APP="./src/*.c"
+FLAGS="-Wall -Werror -Wextra -pedantic -ggdb"
 LIBS=""
 OUT="termines"
 

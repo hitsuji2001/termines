@@ -1,13 +1,13 @@
-#include "./game.h"
+#include "../header/game.h"
 
-void game_init(Game *game) {
-  field_init(&game->field, FIELD_SIZE, FIELD_SIZE);
-  game->state		= GAME_STATE_PLAYING;
+void game_init(Game *game, int rows, int cols) {
+  field_init(&game->field, rows, cols);
+  menu_init_menu(&game->menu);
+  game->state		= GAME_STATE_IN_MENU;
   game->cursor.row	= game->field.rows / 2;
   game->cursor.col	= game->field.cols / 2;
   game->running		= 1;
   game->first_pick	= 1;
-  game->cheat		= 0;
   game->true_flagged	= 0;
   game->stop		= 0;
 }
@@ -40,16 +40,16 @@ void game_handle_input(Game *game, char c) {
     game_handle_yes_no_question(game, "Really quit?", game_quit, game_unpause);
     break;
   case 'w':
-    game_move_cursor_up(game);
+    if (game->cursor.row - 1 >= 0) cursor_move_up(&game->cursor);
     break;
   case 's':
-    game_move_cursor_down(game);
+    if (game->cursor.row + 1 < game->field.rows) cursor_move_down(&game->cursor);
     break;
   case 'a':
-    game_move_cursor_left(game);
+    if (game->cursor.col - 1 >= 0) cursor_move_left(&game->cursor);
     break;
   case 'd':
-    game_move_cursor_right(game);
+    if (game->cursor.col + 1 < game->field.cols) cursor_move_right(&game->cursor);
     break;
   case 'f':
     game_flag_cell_at(game, game->cursor.row, game->cursor.col);
@@ -62,19 +62,18 @@ void game_handle_input(Game *game, char c) {
   case 'r':
     game_handle_yes_no_question(game, "Really restart?", game_restart, game_unpause);
     break;
-  /* case 'C': */
-  /*   game->cheat = !game->cheat; */
-  /*   if (game->cheat) game_reveal_everything(game); */
-  /*   else game_unreveal_everything(game); */
   default:
     break;
   }
 }
 
+void game_run(Game *game) {
+  game_handle_game_state(game);
+}
+
 void game_start(Game *game) {
   char input;
 
-  game_set_input_mode();
   game_clear_everything();
   while(game->running) {
     if (!game->stop) {
@@ -85,7 +84,7 @@ void game_start(Game *game) {
       game_clear_screen(game);
     } else {
       game_print(game);
-      game_handle_game_state(game);
+      game_handle_win_lose_state(game);
       game_clear_screen(game);
     }
   }
@@ -94,7 +93,7 @@ void game_start(Game *game) {
 void game_restart(Game *game){ 
   field_free(&game->field);
   game_clear_everything();
-  game_init(game);
+  game_init(game, FIELD_SIZE, FIELD_SIZE);
 }
 
 void game_quit(Game *game){ 
@@ -106,22 +105,6 @@ void game_unpause(Game *game) {
   game_clear_everything();
   game_print(game);
   game->stop = 0;
-}
-
-void game_move_cursor_up(Game *game) {
-  if (game->cursor.row - 1 >= 0) game->cursor.row--;
-}
-
-void game_move_cursor_down(Game *game) {
-  if (game->cursor.row + 1 < game->field.rows) game->cursor.row++;
-}
-
-void game_move_cursor_left(Game *game) {
-  if (game->cursor.col - 1 >= 0) game->cursor.col--;
-}
-
-void game_move_cursor_right(Game *game) {
-  if (game->cursor.col + 1 < game->field.cols) game->cursor.col++;
 }
 
 void game_clear_screen(Game *game) {
@@ -240,25 +223,14 @@ void game_check_for_win(Game *game) {
 }
 
 void game_handle_game_state(Game *game) {
-  if (game->state == GAME_STATE_WON) {
-    time_t start_time = game->timer;
-    game->timer = time(NULL);
-    float time_taken = difftime(game->timer, start_time);
-
-    printf("Congratulation! You won.\n");
-    printf("Time takens: %02dm:%02.0fs.\n", (int)(time_taken / 60), time_taken - (int)(time_taken / 60));
-
-    game_handle_yes_no_question(game, "Continue playing?", game_restart, game_quit);
-  } else if (game->state == GAME_STATE_LOSE) {
-    time_t start_time = game->timer;
-    game->timer = time(NULL);
-    float time_taken = difftime(game->timer, start_time);
-
-    printf("Oh no! Seems like you hit a mine. That's suck.\n");
-    printf("You flagged %02d/%02d mines! Good jobs.\n", game->true_flagged, game->field.total_mines);
-    printf("Time takens: %02dm:%02.0fs.\n", (int)(time_taken / 60), time_taken - 60 * (int)(time_taken / 60));
-
-    game_handle_yes_no_question(game, "Retry?", game_restart, game_quit);
+  game_set_input_mode();
+  if (game->state == GAME_STATE_IN_MENU) {
+    menu_init_menu(&game->menu);
+    menu_handle(&game->menu);
+    menu_free(&game->menu);
+  } else if (game->state == GAME_STATE_PLAYING) {
+    game_init(game, FIELD_SIZE, FIELD_SIZE);
+    game_start(game);
   }
 }
 
@@ -282,6 +254,29 @@ void game_handle_yes_no_question(Game *game, const char *question, void (*yes) (
     break;
   }
   game_clear_screen(game);
+}
+
+void game_handle_win_lose_state(Game *game) {
+  if (game->state == GAME_STATE_WON) {
+    time_t start_time = game->timer;
+    game->timer = time(NULL);
+    float time_taken = difftime(game->timer, start_time);
+
+    printf("Congratulation! You won.\n");
+    printf("Time takens: %02dm:%02.0fs.\n", (int)(time_taken / 60), time_taken - (int)(time_taken / 60));
+
+    game_handle_yes_no_question(game, "Continue playing?", game_restart, game_quit);
+  } else if (game->state == GAME_STATE_LOSE) {
+    time_t start_time = game->timer;
+    game->timer = time(NULL);
+    float time_taken = difftime(game->timer, start_time);
+
+    printf("Oh no! Seems like you hit a mine. That's suck.\n");
+    printf("You flagged %02d/%02d mines! Good jobs.\n", game->true_flagged, game->field.total_mines);
+    printf("Time takens: %02dm:%02.0fs.\n", (int)(time_taken / 60), time_taken - 60 * (int)(time_taken / 60));
+
+    game_handle_yes_no_question(game, "Retry?", game_restart, game_quit);
+  }
 }
 
 void game_reveal_everything(Game *game) {

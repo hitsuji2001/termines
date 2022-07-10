@@ -1,7 +1,12 @@
-#include "mine_field.h"
+#include "../header/mine_field.h"
 
 void field_init(Field *field, int rows, int cols) {
   field->cells = malloc(sizeof(Cell) * (rows *cols));
+
+  if (field->cells == NULL) {
+    fprintf(stderr, "[ERROR]: Could not allocate memory for the mine field.\n");
+    exit(1);
+  }
 
   field->rows = rows;
   field->cols = cols;
